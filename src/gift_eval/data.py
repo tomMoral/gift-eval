@@ -35,6 +35,8 @@ from toolz import compose
 TEST_SPLIT = 0.1
 MAX_WINDOW = 20
 
+N_SERIES_DEBUG = 10
+
 M4_PRED_LENGTH_MAP = {
     "A": 6,
     "Q": 8,
@@ -126,12 +128,15 @@ class Dataset:
         term: Term | str = Term.SHORT,
         to_univariate: bool = False,
         storage_env_var: str = "GIFT_EVAL",
+        debug=False
     ):
         load_dotenv()
         storage_path = Path(os.getenv(storage_env_var))
         self.hf_dataset = datasets.load_from_disk(str(storage_path / name)).with_format(
             "numpy"
         )
+        if debug:
+            self.hf_dataset = self.hf_dataset.select(range(N_SERIES_DEBUG))
         process = ProcessDataEntry(
             self.freq,
             one_dim_target=self.target_dim == 1,
