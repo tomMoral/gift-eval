@@ -53,7 +53,8 @@ class Objective(BaseObjective):
     url = "https://github.com/SalesforceAIResearch/gift-eval"
     min_benchopt_version = "1.9"
     requirements = [
-        "pip::git+https://github.com/SalesforceAIResearch/gift-eval.git"
+        # for now, use a patched version of gift-eval to have debug datasets
+        "pip::git+https://github.com/tommoral/gift-eval.git@INI_benchopt_runner"
     ]
 
     sampling_strategy = "run_once"
