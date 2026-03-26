@@ -11,13 +11,10 @@ Reference:
     https://github.com/amazon-science/chronos-forecasting
 """
 
-import logging
-
 import torch
 from benchopt import BaseSolver
-from gluonts.model.forecast import QuantileForecast
 
-logger = logging.getLogger(__name__)
+from benchmark_utils.forecast_repair import build_quantile_forecasts
 
 QUANTILE_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
@@ -98,8 +95,8 @@ class Solver(BaseSolver):
                     break
                 except torch.cuda.OutOfMemoryError:
                     model_batch_size //= 2
-                    logger.warning(
-                        f"CUDA OOM – reducing batch size to {model_batch_size}"
+                    print(
+                        f"CUDA OOM reducing batch size to {model_batch_size}"
                     )
 
             # quantiles: list of tensors → stack to [batch, variates, T, Q]
@@ -108,16 +105,11 @@ class Solver(BaseSolver):
             if is_univariate:
                 q = q.squeeze(-1)  # → [batch, Q, T]
 
-            window_forecasts = []
-            for arr, ts in zip(q, window_inputs):
-                start_date = ts["start"] + len(ts["target"])
-                window_forecasts.append(
-                    QuantileForecast(
-                        forecast_arrays=arr,
-                        forecast_keys=[str(lv) for lv in QUANTILE_LEVELS],
-                        start_date=start_date,
-                    )
-                )
+            window_forecasts = build_quantile_forecasts(
+                forecast_arrays=q,
+                test_inputs=window_inputs,
+                forecast_keys=QUANTILE_LEVELS,
+            )
             forecast_windows.append(window_forecasts)
 
         # Re-interleave windows into the original test_data.input order:

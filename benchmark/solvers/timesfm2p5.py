@@ -15,13 +15,14 @@ Reference:
 import numpy as np
 from benchopt import BaseSolver
 from gluonts.itertools import batcher
-from gluonts.model.forecast import QuantileForecast
 
 import timesfm
 
+from benchmark_utils.forecast_repair import build_quantile_forecasts
+
 # Quantile levels output by TimesFM (indices 1-9 of its output, skipping the
 # mean at index 0).
-_QUANTILE_LEVELS = list(np.arange(1, 10) / 10.0)  # [0.1, ..., 0.9]
+QUANTILE_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 
 class Solver(BaseSolver):
@@ -97,22 +98,17 @@ class Solver(BaseSolver):
             )
             # full_preds: (batch, horizon, n_outputs)
             # Index 0 is the mean; indices 1-9 are the nine quantile levels.
-            quantile_preds = full_preds[:, :pred_len, 1:]  # (batch, T, 9)
-            forecast_outputs.append(quantile_preds.transpose((0, 2, 1)))  # (batch, 9, T)
+            quantile_preds = full_preds[:, :pred_len, 1:]  # (batch, T, Q)
+            # (batch, Q, T)
+            forecast_outputs.append(quantile_preds.transpose((0, 2, 1)))
 
         forecast_arrays = np.concatenate(forecast_outputs)  # (N, 9, T)
 
-        forecasts = []
-        for arr, ts in zip(forecast_arrays, self._test_data_input):
-            start_date = ts["start"] + len(ts["target"])
-            forecasts.append(
-                QuantileForecast(
-                    forecast_arrays=arr,
-                    forecast_keys=[str(q) for q in _QUANTILE_LEVELS],
-                    start_date=start_date,
-                )
-            )
-        self._forecasts = forecasts
+        self._forecasts = build_quantile_forecasts(
+            forecast_arrays=forecast_arrays,
+            test_inputs=self._test_data_input,
+            forecast_keys=QUANTILE_LEVELS,
+        )
 
     def get_result(self):
         return {"forecasts": self._forecasts}

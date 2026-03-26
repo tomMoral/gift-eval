@@ -81,3 +81,33 @@ def repair_forecast_ffill(
         repaired_forecasts.append(repaired_forecast)
 
     return repaired_forecasts, repaired_count
+
+
+def build_quantile_forecasts(
+    forecast_arrays,
+    test_inputs,
+    forecast_keys,
+):
+    """Build QuantileForecast objects from raw arrays.
+
+    Parameters
+    ----------
+    forecast_arrays : iterable
+        Arrays with shape [Q, T] or [Q, T, D].
+    test_inputs : iterable
+        Matching GluonTS inputs containing ``target`` and ``start``.
+    forecast_keys : list[str]
+        Quantile labels.
+    """
+    forecasts = []
+
+    for arr, ts in zip(forecast_arrays, test_inputs):
+        forecasts.append(
+            QuantileForecast(
+                forecast_arrays=arr,
+                forecast_keys=[str(k) for k in forecast_keys],
+                start_date=ts["start"] + len(ts["target"]),
+            )
+        )
+
+    return forecasts
