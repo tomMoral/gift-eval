@@ -17,6 +17,8 @@ from benchopt import BaseSolver
 from gluonts.itertools import batcher
 from gluonts.model.forecast import QuantileForecast
 
+import timesfm
+
 # Quantile levels output by TimesFM (indices 1-9 of its output, skipping the
 # mean at index 0).
 _QUANTILE_LEVELS = list(np.arange(1, 10) / 10.0)  # [0.1, ..., 0.9]
@@ -30,15 +32,14 @@ class Solver(BaseSolver):
     """
 
     name = "TimesFM-2.5"
-    sampling_strategy = "run_once"
 
     # timesfm must be installed from source (see module docstring).
-    # No conda/pip package is available on PyPI yet.
-    install_cmd = "conda"
-    requirements = []  # install manually: pip install -e path/to/timesfm
+    requirements = [
+        "pip::git+https://github.com/google-research/timesfm"
+    ]
 
     parameters = {
-        "batch_size": [1024],
+        "batch_size": [100],
     }
 
     def set_objective(self, gift_eval_dataset):
@@ -48,11 +49,9 @@ class Solver(BaseSolver):
         exclude one-time loading time from the benchmark timing.
         """
         # Load the model only once; reuse across dataset configurations.
-        if not hasattr(self, "_tfm"):
-            from timesfm.timesfm_2p5 import timesfm_2p5_torch
-
-            self._tfm = timesfm_2p5_torch.TimesFM_2p5_200M_torch()
-            self._tfm.load_checkpoint()
+        self._tfm = timesfm.TimesFM_2p5_200M_torch.from_pretrained(
+            "google/timesfm-2.5-200m-pytorch"
+        )
 
         self._prediction_length = gift_eval_dataset.prediction_length
         # Materialise inputs now so that ``run`` is not slowed by iterator
@@ -61,7 +60,6 @@ class Solver(BaseSolver):
 
     def run(self, n_iter):
         """Generate TimesFM-2.5 forecasts (this is the timed section)."""
-        from timesfm import configs
 
         pred_len = self._prediction_length
         forecast_outputs = []
@@ -80,7 +78,7 @@ class Solver(BaseSolver):
             max_context = ((max_context + p - 1) // p) * p
 
             self._tfm.compile(
-                forecast_config=configs.ForecastConfig(
+                forecast_config=timesfm.configs.ForecastConfig(
                     max_context=min(15360, max_context),
                     max_horizon=1024,
                     infer_is_positive=True,

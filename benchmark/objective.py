@@ -52,11 +52,16 @@ class Objective(BaseObjective):
     name = "GIFT-Eval Forecasting"
     url = "https://github.com/SalesforceAIResearch/gift-eval"
     min_benchopt_version = "1.9"
-    sampling_strategy = "run_once"
-
     requirements = [
         "pip::git+https://github.com/SalesforceAIResearch/gift-eval.git"
     ]
+
+    sampling_strategy = "run_once"
+
+    test_dataset_name = "gift-eval"
+    test_config = {
+        "dataset": {'debug': True},  # use debug subset for fast checks
+    }
 
     def set_data(self, gift_eval_dataset, domain, num_variates):
         self.gift_eval_dataset = gift_eval_dataset
