@@ -36,7 +36,8 @@ class Solver(BaseSolver):
 
     # timesfm must be installed from source (see module docstring).
     requirements = [
-        "pip::git+https://github.com/google-research/timesfm"
+        "pip::git+https://github.com/google-research/timesfm",
+        "pip::transformers>=5"
     ]
 
     parameters = {
