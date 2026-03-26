@@ -4,9 +4,7 @@ GIFT-Eval Forecasting Benchmark Objective.
 Evaluates time series forecasting models using the full set of GIFT-Eval
 metrics via the GluonTS evaluation framework.
 """
-
 import logging
-
 from benchopt import BaseObjective
 
 from gluonts.ev.metrics import (
@@ -24,6 +22,10 @@ from gluonts.ev.metrics import (
 from gluonts.model import evaluate_forecasts
 from gluonts.time_feature import get_seasonality
 
+from benchmark_utils.forecast_repair import repair_forecast_ffill
+
+QUANTILE_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
 
 # Suppress the gluonts warning when QuantileForecast has no explicit mean key.
 class _WarningFilter(logging.Filter):
@@ -33,13 +35,6 @@ class _WarningFilter(logging.Filter):
 
     def filter(self, record):
         return self.text not in record.getMessage()
-
-
-logging.getLogger("gluonts.model.forecast").addFilter(
-    _WarningFilter("The mean prediction is not stored in the forecast data")
-)
-
-QUANTILE_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 
 class Objective(BaseObjective):
@@ -93,6 +88,11 @@ class Objective(BaseObjective):
 
     def evaluate_result(self, forecasts):
         """Compute GIFT-Eval metrics from the solver's forecast list."""
+        test_inputs = list(self.gift_eval_dataset.test_data.input)
+        forecasts, repaired_count = repair_forecast_ffill(
+            forecasts, test_inputs
+        )
+
         season_length = get_seasonality(self.gift_eval_dataset.freq)
         res = (
             evaluate_forecasts(

@@ -13,7 +13,6 @@ Reference:
 
 import logging
 
-import numpy as np
 import torch
 from benchopt import BaseSolver
 from gluonts.model.forecast import QuantileForecast
@@ -111,24 +110,6 @@ class Solver(BaseSolver):
 
             window_forecasts = []
             for arr, ts in zip(q, window_inputs):
-                # If the model emits invalid values, fall back to a simple
-                # last-value forecast to keep evaluation stable.
-                if not np.isfinite(arr).all():
-                    target = np.asarray(ts["target"])
-                    if target.ndim == 1:
-                        last_val = target[-1]
-                        arr = np.full(
-                            (len(QUANTILE_LEVELS), self._prediction_length),
-                            last_val,
-                            dtype=np.float32,
-                        )
-                    else:
-                        last_val = target[:, -1]
-                        arr = np.tile(
-                            last_val[None, None, :],
-                            (len(QUANTILE_LEVELS), self._prediction_length, 1),
-                        ).astype(np.float32)
-
                 start_date = ts["start"] + len(ts["target"])
                 window_forecasts.append(
                     QuantileForecast(

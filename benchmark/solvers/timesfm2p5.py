@@ -75,11 +75,11 @@ class Solver(BaseSolver):
 
             # Round max_context up to the nearest multiple of model patch size.
             p = self._tfm.model.p
-            max_context = ((max_context + p - 1) // p) * p
+            max_context = min(((max_context + p - 1) // p) * p, 15360)
 
             self._tfm.compile(
                 forecast_config=timesfm.configs.ForecastConfig(
-                    max_context=min(15360, max_context),
+                    max_context=max_context,
                     max_horizon=1024,
                     infer_is_positive=True,
                     use_continuous_quantile_head=True,
