@@ -226,3 +226,48 @@ If you find this benchmark useful, please consider citing:
 ```
 
 This repository is intended for research purposes only.
+
+## Time Series Classification Benchmark
+
+In addition to forecasting, this repository provides a [benchopt](https://benchopt.github.io/) benchmark
+for time series **classification** using the [UCR Archive](https://www.cs.ucr.edu/~eamonn/time_series_data_2018/).
+
+### Structure
+
+```
+benchmark_classification/
+├── objective.py          # Classification metrics (accuracy, F1, balanced accuracy, …)
+├── config.yml            # Data paths
+├── datasets/
+│   └── ucr.py            # UCR Archive loader (via tslearn); returns (N, C, T) arrays
+├── solvers/
+│   └── mantis.py         # Mantis (paris-noah/Mantis-8M) + Random Forest pipeline
+└── benchmark_utils/
+    └── classification.py # Shared utilities
+```
+
+### Installation
+
+```bash
+pip install benchopt>=1.9 mantis-tsfm>=1.0.0 tslearn>=0.6.3 scikit-learn>=1.0.0
+```
+
+### Running
+
+```bash
+# default dataset: ECG5000
+benchopt run benchmark_classification/
+
+# specific solver
+benchopt run benchmark_classification/ -s Mantis-RandomForest
+
+# specific dataset
+benchopt run benchmark_classification/ -d "UCR[dataset_name=GunPoint]"
+```
+
+### Adding a new solver
+
+Create a file under `benchmark_classification/solvers/` subclassing `benchopt.BaseSolver`
+with `sampling_strategy = "run_once"`. The solver receives a `ucr_dataset` object with
+`X_train`, `y_train`, `X_test`, `y_test` attributes (arrays shaped `(N, C, T)`) and must
+return `{"y_pred": ..., "y_pred_proba": ...}` from `get_result()`.
